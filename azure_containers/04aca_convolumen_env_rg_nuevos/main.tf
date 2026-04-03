@@ -27,23 +27,23 @@ resource "azurerm_container_app_environment" "env" {
   name                = "aca-env-demo"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
-#  depends_on          = [azurerm_resource_provider_registration.app]
+  #  depends_on          = [azurerm_resource_provider_registration.app]
 }
 
 # Cuenta de almacenamiento en Azure para alojar el File Share
 resource "azurerm_storage_account" "sa" {
-  name                     = "sademoredis001"  # debe ser único globalmente
+  name                     = "sademoredis0010304c" # debe ser único globalmente
   resource_group_name      = azurerm_resource_group.rg.name
   location                 = azurerm_resource_group.rg.location
   account_tier             = "Standard"
-  account_replication_type = "LRS"             # replicación local, la más barata
+  account_replication_type = "LRS" # replicación local, la más barata
 }
 
 # File Share dentro de la storage account: carpeta compartida tipo NFS
 resource "azurerm_storage_share" "redis_share" {
   name                 = "redis-data"
   storage_account_name = azurerm_storage_account.sa.name
-  quota                = 1  # 1 GB
+  quota                = 1 # 1 GB
   depends_on           = [azurerm_storage_account.sa]
 }
 
@@ -108,7 +108,7 @@ resource "azurerm_container_app" "app" {
   template {
     container {
       name   = "get-started"
-      image  = "dgarridouma/get-started:part2" # nombreregistro.azurecr.io/get-started:part2
+      image  = "miregistro2026.azurecr.io/get-started:part2" # nombreregistro.azurecr.io/get-started:part2
       cpu    = 0.25
       memory = "0.5Gi"
 
@@ -128,17 +128,22 @@ resource "azurerm_container_app" "app" {
       latest_revision = true
     }
   }
-}
 
-# Credenciales de registro
-# Pueden ser de Docker Hub
-# O un registro de Azure Container Registries
-# Se pueden poner tantos bloques de este tipo como registros se usen
-#image_registry_credential {
-#  server   = "index.docker.io" # nombreregistro.azurecr.io
-#  username = "YOURUSER"
-#  password = "YOURPASSWORD"
-#}
+  # Credenciales de registro
+  # Pueden ser de Docker Hub
+  # O un registro de Azure Container Registries
+  # Se pueden poner tantos bloques de estos tipos como registros se usen
+  #secret {
+  #  name  = "acr-password"
+  #  value = "YOURPASSWORD"
+  #}
+
+  #registry {
+  #  server               = "YOURREGISTRY.azurecr.io"
+  #  username             = "YOURREGISTRY"
+  #  password_secret_name = "acr-password"
+  #}
+}
 
 
 # URL pública de la app web tras el despliegue

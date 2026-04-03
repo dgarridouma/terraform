@@ -83,17 +83,22 @@ resource "azurerm_container_app" "app" {
       latest_revision = true
     }
   }
-}
 
-# Credenciales de registro
-# Pueden ser de Docker Hub
-# O un registro de Azure Container Registries
-# Se pueden poner tantos bloques de este tipo como registros se usen
-#image_registry_credential {
-#  server   = "index.docker.io" # nombreregistro.azurecr.io
-#  username = "YOURUSER"
-#  password = "YOURPASSWORD"
-#}
+  # Credenciales de registro
+  # Pueden ser de Docker Hub
+  # O un registro de Azure Container Registries
+  # Se pueden poner tantos bloques de estos tipos como registros se usen
+  #secret {
+  #  name  = "acr-password"
+  #  value = "YOURPASSWORD"
+  #}
+
+  #registry {
+  #  server               = "YOURREGISTRY.azurecr.io"
+  #  username             = "YOURREGISTRY"
+  #  password_secret_name = "acr-password"
+  #}
+}
 
 
 # URL pública de la app web tras el despliegue
