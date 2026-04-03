@@ -30,8 +30,34 @@ resource "azurerm_container_app_environment" "env" {
 #  depends_on          = [azurerm_resource_provider_registration.app]
 }
 
-# Container App para Redis
-# Sin ingress externo: solo accesible desde otras apps del mismo environment
+# Cuenta de almacenamiento en Azure para alojar el File Share
+resource "azurerm_storage_account" "sa" {
+  name                     = "sademoredis001"  # debe ser único globalmente
+  resource_group_name      = azurerm_resource_group.rg.name
+  location                 = azurerm_resource_group.rg.location
+  account_tier             = "Standard"
+  account_replication_type = "LRS"             # replicación local, la más barata
+}
+
+# File Share dentro de la storage account: carpeta compartida tipo NFS
+resource "azurerm_storage_share" "redis_share" {
+  name                 = "redis-data"
+  storage_account_name = azurerm_storage_account.sa.name
+  quota                = 1  # 1 GB
+  depends_on           = [azurerm_storage_account.sa]
+}
+
+# Registra el File Share en el environment de ACA para que las apps puedan usarlo
+resource "azurerm_container_app_environment_storage" "redis_storage" {
+  name                         = "redis-storage"
+  container_app_environment_id = azurerm_container_app_environment.env.id
+  account_name                 = azurerm_storage_account.sa.name
+  share_name                   = azurerm_storage_share.redis_share.name
+  access_key                   = azurerm_storage_account.sa.primary_access_key
+  access_mode                  = "ReadWrite"
+}
+
+# Container App para Redis con volumen montado en /data para persistencia
 resource "azurerm_container_app" "redis" {
   name                         = "redis"
   container_app_environment_id = azurerm_container_app_environment.env.id
@@ -44,10 +70,23 @@ resource "azurerm_container_app" "redis" {
       image  = "redis:7"
       cpu    = 0.25
       memory = "0.5Gi"
+
+      # Monta el volumen en /data, que es donde Redis guarda sus datos
+      volume_mounts {
+        name = "redis-volume"
+        path = "/data"
+      }
+    }
+
+    # Asocia el volumen registrado en el environment al contenedor
+    volume {
+      name         = "redis-volume"
+      storage_type = "AzureFile"
+      storage_name = azurerm_container_app_environment_storage.redis_storage.name
     }
   }
 
-  # Ingress interno TCP: permite que otras apps accedan a Redis por su nombre
+  # Ingress interno TCP: solo accesible desde otras apps del mismo environment
   ingress {
     external_enabled = false
     target_port      = 6379
@@ -60,7 +99,6 @@ resource "azurerm_container_app" "redis" {
 }
 
 # Container App para la aplicación web
-# Con ingress externo: accesible desde internet
 resource "azurerm_container_app" "app" {
   name                         = "get-started"
   container_app_environment_id = azurerm_container_app_environment.env.id
